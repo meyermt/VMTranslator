@@ -23,6 +23,10 @@ public class VMFileReader {
         return this.inputPath;
     }
 
+    public List<String> readAndClean() {
+        return removeWSComments(readFile(inputPath));
+    }
+
     /*
     Reads the file. Will exit the program if IOException encountered or file is not of .asm extension
 */
