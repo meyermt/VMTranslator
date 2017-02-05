@@ -24,7 +24,7 @@ public class VMFileReader {
     }
 
     public List<String> readAndClean() {
-        return removeWSComments(readFile(inputPath));
+        return removeComments(readFile(inputPath));
     }
 
     /*
@@ -50,13 +50,10 @@ public class VMFileReader {
     /*
         Removes whitespace, blank lines, and comments from code
     */
-    private List<String> removeWSComments(List<String> fileLines) {
+    private List<String> removeComments(List<String> fileLines) {
         return fileLines.stream()
-                // remove all whitespace
-                .map(whiteful -> whiteful.replaceAll(" ", ""))
-                // if the no comment flag is set, remove comments
                 .map(commentful -> commentful.replaceAll("(//.*)", ""))
-                // remove tab characters
+                // remove tab characters, although in theory there shouldn't be any
                 .map(tabful -> tabful.replaceAll("\t", ""))
                 // remove blank lines after comment removal in case comment was the whole line
                 .filter(line -> !line.equals(""))

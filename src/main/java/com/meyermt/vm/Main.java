@@ -15,12 +15,14 @@ public class Main {
 
         // stream over the file, parse and translate
         AsmCoder coder = new AsmCoder();
-        Parser parser = new Parser(coder);
+        Parser parser = new Parser(coder, reader.getInputPath().getFileName().toString());
         List<String> assemblerOutput = cleanFileLines.stream()
                 .map(line -> parser.parseAndTranslate(line))
                 .collect(Collectors.toList());
 
         // write the output
+        AsmFileWriter writer = new AsmFileWriter(reader.getInputPath());
+        writer.writeAsmFile(assemblerOutput);
     }
 
 }
