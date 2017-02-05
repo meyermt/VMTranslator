@@ -161,9 +161,11 @@ public class AsmCoder {
                 break;
             case POINTER:
                 if (position == 0) {
-                    segmentAsm = generatePushPopStart(type, "THIS", position);
+                    segmentAsm = "@THIS" + System.lineSeparator() +
+                                 "D=M" + System.lineSeparator();
                 } else {
-                    segmentAsm = generatePushPopStart(type, "THAT", position);
+                    segmentAsm = "@THAT" + System.lineSeparator() +
+                                 "D=M" + System.lineSeparator();
                 }
                 break;
         }
