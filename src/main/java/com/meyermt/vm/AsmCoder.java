@@ -18,11 +18,11 @@ public class AsmCoder {
     private static final String ADD_END =
             "M=M+D";
     private static final String SUB_END =
-            "M=M-D" + System.lineSeparator();
+            "M=M-D";
     private static final String NEG_ASM =
             "@SP" + System.lineSeparator() +
             "A=M-1" + System.lineSeparator() +
-            "M=-M" + System.lineSeparator();
+            "M=-M";
     private static final String NOT_ASM =
             "@SP" + System.lineSeparator() +
             "A=M-1" + System.lineSeparator() +
@@ -109,6 +109,7 @@ public class AsmCoder {
         popBuilder.append("@R13" + System.lineSeparator());
         popBuilder.append("A=M" + System.lineSeparator());
         popBuilder.append("M=D");
+        return popBuilder.toString();
     };
 
     private String getLTEQGT(String jump, Integer counter) {
@@ -148,7 +149,9 @@ public class AsmCoder {
                 segmentAsm = generatePushPopStart(type, fileName + "." + position, position);
                 break;
             case TEMP:
-                segmentAsm = generatePushPopStart(type, Integer.toString(5 + position), position);
+                int tempPosition = 5 + position;
+                segmentAsm = "@" + tempPosition + System.lineSeparator() +
+                             "D=M" + System.lineSeparator();
                 break;
             case THIS:
                 segmentAsm = generatePushPopStart(type, "THIS", position);

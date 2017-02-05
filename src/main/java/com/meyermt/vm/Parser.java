@@ -1,9 +1,6 @@
 package com.meyermt.vm;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -26,7 +23,7 @@ public class Parser {
 
     public Parser(AsmCoder coder, String fileName) {
         this.coder = coder;
-        this.fileName = fileName;
+        this.fileName = fileName.replace(".vm","");
         // pass in coder to constructor and to load. More unit-testable
         loadStatArithmeticMap(coder);
         loadDynArithmeticMap(coder);
@@ -34,7 +31,8 @@ public class Parser {
     }
 
     public String parseAndTranslate(String vmLine) {
-        List<String> args = Arrays.asList(vmLine.split(" "));
+        List<String> args = new ArrayList<>(Arrays.asList(vmLine.split(" ")));
+        args.add(fileName);
         if (statArithmeticToAsm.containsKey(args.get(0))) {
             return statArithmeticToAsm.get(args.get(0));
         } else if (dynArithmeticToAsm.containsKey(args.get(0))) {
@@ -43,7 +41,6 @@ public class Parser {
             return dynArithmeticToAsm.get(args.get(0)).apply(commandCounter);
         } else {
             // the static push and pop needs the file name
-            args.add(fileName);
             return pushPopToAsm.get(args.get(0)).apply(args);
         }
     }
