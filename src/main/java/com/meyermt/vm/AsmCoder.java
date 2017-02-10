@@ -2,9 +2,9 @@ package com.meyermt.vm;
 
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.IntBinaryOperator;
 
 /**
+ * Writes assembly code from VM instructions.
  * Created by michaelmeyer on 2/3/17.
  */
 public class AsmCoder {
@@ -45,39 +45,84 @@ public class AsmCoder {
     private final static String POINTER0_ASM = "@THIS" + System.lineSeparator();
     private final static String POINTER1_ASM = "@THAT" + System.lineSeparator();
 
+    /**
+     * Instantiates a new Asm coder.
+     */
     public AsmCoder() {
     }
 
+    /**
+     * Gets add asm.
+     *
+     * @return the add asm
+     */
     public String getAddAsm() {
         return ADD_ASM;
     }
 
+    /**
+     * Gets sub asm.
+     *
+     * @return the sub asm
+     */
     public String getSubAsm() {
         return SUB_ASM;
     }
 
+    /**
+     * Gets neg asm.
+     *
+     * @return the neg asm
+     */
     public String getNegAsm() {
         return NEG_ASM;
     }
 
+    /**
+     * Gets not asm.
+     *
+     * @return the not asm
+     */
     public String getNotAsm() {
         return NOT_ASM;
     }
 
+    /**
+     * Gets and asm.
+     *
+     * @return the and asm
+     */
     public String getAndAsm() {
         return AND_ASM;
     }
 
+    /**
+     * Gets or asm.
+     *
+     * @return the or asm
+     */
     public String getOrAsm() {
         return OR_ASM;
     }
 
+    /**
+     * Function that reads in a variable counter and returns greater than assembly code.
+     */
     public Function<Integer, String> greaterThanAsm = (Integer counter) -> getLTEQGT("GT", counter);
 
+    /**
+     * Function that reads in a variable counter and returns less than assembly code.
+     */
     public Function<Integer, String> lessThanAsm = (Integer counter) -> getLTEQGT("LT", counter);
 
+    /**
+     * Function that reads in a variable counter and returns equal to assembly code.
+     */
     public Function<Integer, String> equalToAsm = (Integer counter) -> getLTEQGT("EQ", counter);
 
+    /**
+     * Function that reads in push type, segment, position, and filename in an array and outputs push assembly code.
+     */
     public Function<List<String>, String> pushToAsm = (List<String> args) -> {
         String pushType = args.get(0);
         String segment = args.get(1);
@@ -93,6 +138,9 @@ public class AsmCoder {
         return pushBuilder.toString();
     };
 
+    /**
+     * Function that reads in pop type, segment, position, and filename in an array and outputs pop assembly code.
+     */
     public Function<List<String>, String> popToAsm = (List<String> args) -> {
         String popType = args.get(0);
         String segment = args.get(1);
@@ -112,6 +160,9 @@ public class AsmCoder {
         return popBuilder.toString();
     };
 
+    /*
+        Standard assembly code that is shared in LT, EQ, and GT commands
+     */
     private String getLTEQGT(String jump, Integer counter) {
         StringBuilder builder = new StringBuilder();
         builder.append(ADD_SUB_GT_LT_EQ_SHARED_START);
@@ -132,6 +183,9 @@ public class AsmCoder {
 
     }
 
+    /*
+        Translates segment to assembly code
+     */
     private String getSegmentTranslation(String type, String segment, int position, String fileName) {
         String segmentAsm = "";
         switch (segment) {
@@ -172,6 +226,9 @@ public class AsmCoder {
         return segmentAsm;
     }
 
+    /*
+        Generated code that is similar between segments, differs on push and pop
+     */
     private String generatePushPopStart(String type, String asmSeg, int position) {
         if (type.equals("push")) {
             return "@" + asmSeg + System.lineSeparator() +

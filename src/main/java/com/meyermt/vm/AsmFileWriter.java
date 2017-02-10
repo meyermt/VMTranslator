@@ -10,6 +10,7 @@ import java.util.List;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 
 /**
+ * Writes assembly code file
  * Created by michaelmeyer on 2/3/17.
  */
 public class AsmFileWriter {
@@ -18,15 +19,21 @@ public class AsmFileWriter {
     private final static String VM_EXT = "vm";
     private final static String ASM_EXT = "asm";
 
+    /**
+     * Instantiates a new Asm file writer using output path.
+     *
+     * @param outputPath the output path
+     */
     public AsmFileWriter(Path outputPath) {
         this.outputPath = outputPath;
     }
 
-    /*
-        Writes output to a file with .hack extension. Will truncate/write over existing .hack files if there
-    */
+    /**
+     * Write asm file to output path.
+     *
+     * @param asmCode the asm code to be written out.
+     */
     public void writeAsmFile(List<String> asmCode) {
-        // create the output file
         String fileName = outputPath.getFileName().toString();
         String outputFileName = fileName.replace(VM_EXT, ASM_EXT);
         try {

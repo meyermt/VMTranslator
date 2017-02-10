@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
+ * Reads vm input file and cleans the comments and blank lines that exist in it.
  * Created by michaelmeyer on 2/3/17.
  */
 public class VMFileReader {
@@ -15,25 +16,40 @@ public class VMFileReader {
     private final Path inputPath;
     private final static String VM_EXT = ".vm";
 
+    /**
+     * Instantiates a new Vm file reader.
+     *
+     * @param inputFile the input file
+     */
     public VMFileReader(String inputFile) {
         this.inputPath = Paths.get(inputFile);
     }
 
+    /**
+     * Gets input path.
+     *
+     * @return the input path
+     */
     public Path getInputPath() {
         return this.inputPath;
     }
 
+    /**
+     * Read and clean list.
+     *
+     * @return the list
+     */
     public List<String> readAndClean() {
         return removeComments(readFile(inputPath));
     }
 
     /*
-    Reads the file. Will exit the program if IOException encountered or file is not of .asm extension
-*/
+        Reads the file. Will exit the program if IOException encountered or file is not of .vm extension
+    */
     private List<String> readFile(Path inputPath) {
         // if the filename doesn't have the .asm extension we will exit with helpful message
         if (!inputPath.toString().endsWith(VM_EXT)) {
-            System.out.println("Only able to read files with .asm extension. Please rename file and try again.");
+            System.out.println("Only able to read files with .vm extension. Please rename file and try again.");
             System.exit(1);
         }
         try {
@@ -48,7 +64,7 @@ public class VMFileReader {
     }
 
     /*
-        Removes whitespace, blank lines, and comments from code
+        Removes blank lines, tabs, and comments from code
     */
     private List<String> removeComments(List<String> fileLines) {
         return fileLines.stream()

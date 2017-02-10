@@ -4,15 +4,18 @@ import java.util.*;
 import java.util.function.Function;
 
 /**
+ * Parser for incoming vm code. Parses the code by looking for spaces and then deciding if it is arithmetic or push/pop.
+ * After that uses AsmCoder to actually translate arguments to assembly code.
  * Created by michaelmeyer on 2/3/17.
  */
 public class Parser {
 
     private final AsmCoder coder;
     private final String fileName;
+
     // the arithmetic vm commands
-    public final static String ADD = "add", SUB = "sub", NEG = "neg", EQ = "eq", GT = "gt", LT = "lt",
-                                AND = "and", OR = "or", NOT = "not";
+    public final static String ADD = "add", SUB = "sub", NEG = "neg", EQ = "eq", GT = "gt", LT = "lt", AND = "and",
+                                OR = "or", NOT = "not";
     // the push and pop commands
     private final static String POP = "pop", PUSH = "push";
 
@@ -21,27 +24,41 @@ public class Parser {
     private Map<String, Function<List<String>, String>> pushPopToAsm = new HashMap<>();
     private int commandCounter = 0;
 
+    /**
+     * Instantiates a new Parser. Must have a filename in order to be able to pass to AsmCoder to name static variables.
+     *
+     * @param coder    the coder
+     * @param fileName the file name
+     */
     public Parser(AsmCoder coder, String fileName) {
         this.coder = coder;
         this.fileName = fileName.replace(".vm","");
-        // pass in coder to constructor and to load. More unit-testable
         loadStatArithmeticMap(coder);
         loadDynArithmeticMap(coder);
         loadPushPopToAsm(coder);
     }
 
+    /**
+     * Parse and translate string. Decides if command is what it considers dynamic or static arithmetic (dynamic means it
+     * may use a counter to "dynamically" generate labels for the assembly code. If neither, assumes it is a push or pop
+     * command.
+     *
+     * @param vmLine the vm line
+     * @return the string
+     */
     public String parseAndTranslate(String vmLine) {
         List<String> args = new ArrayList<>(Arrays.asList(vmLine.split(" ")));
         args.add(fileName);
-        if (statArithmeticToAsm.containsKey(args.get(0))) {
-            return statArithmeticToAsm.get(args.get(0));
-        } else if (dynArithmeticToAsm.containsKey(args.get(0))) {
+        String command = args.get(0);
+        if (statArithmeticToAsm.containsKey(command)) {
+            return statArithmeticToAsm.get(command);
+        } else if (dynArithmeticToAsm.containsKey(command)) {
             // dynamic arithmetic requires us to increment certain labels
             commandCounter++;
-            return dynArithmeticToAsm.get(args.get(0)).apply(commandCounter);
+            return dynArithmeticToAsm.get(command).apply(commandCounter);
         } else {
             // the static push and pop needs the file name
-            return pushPopToAsm.get(args.get(0)).apply(args);
+            return pushPopToAsm.get(command).apply(args);
         }
     }
 
