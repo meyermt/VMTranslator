@@ -13,9 +13,9 @@ public class Parser {
     private final AsmCoder coder;
     private final String fileName;
 
-    // the arithmetic vm commands
+    // the arithmetic and return vm commands
     public final static String ADD = "add", SUB = "sub", NEG = "neg", EQ = "eq", GT = "gt", LT = "lt", AND = "and",
-                                OR = "or", NOT = "not";
+                                OR = "or", NOT = "not", RETURN = "return";
     // the push and pop commands
     private final static String POP = "pop", PUSH = "push";
 
@@ -79,6 +79,7 @@ public class Parser {
         statArithmeticToAsm.put(NOT, coder.getNotAsm());
         statArithmeticToAsm.put(AND, coder.getAndAsm());
         statArithmeticToAsm.put(OR, coder.getOrAsm());
+        statArithmeticToAsm.put(RETURN, coder.getReturnAsm());
     }
 
     private void loadDynArithmeticMap(AsmCoder coder) {

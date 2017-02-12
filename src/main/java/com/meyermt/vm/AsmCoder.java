@@ -1,5 +1,7 @@
 package com.meyermt.vm;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -44,6 +46,19 @@ public class AsmCoder {
             THIS = "this", THAT = "that", POINTER = "pointer", TEMP = "temp";
 
     private int returnAddrCounter = 0;
+    private String currentFunctionName = "";
+
+    public List<String> writeBootStrap() {
+        List<String> instructions = new ArrayList<>();
+        instructions.add("@256");
+        instructions.add("D=A");
+        instructions.add("@SP");
+        instructions.add("M=D");
+        String[] callArgs = {"call", "Sys.init", "0"};
+        List<String> call = Arrays.asList(callArgs);
+        instructions.add(callToAsm.apply(call));
+        return instructions;
+    }
 
     /**
      * Instantiates a new Asm coder.
@@ -152,29 +167,36 @@ public class AsmCoder {
         String fileName = args.get(3);
         StringBuilder popBuilder = new StringBuilder();
         popBuilder.append(getSegmentTranslation(popType, segment, position, fileName));
-        popBuilder.append("D=D+A" + System.lineSeparator());
-        popBuilder.append("@R13" + System.lineSeparator());
-        popBuilder.append("M=D" + System.lineSeparator());
-        popBuilder.append("@SP" + System.lineSeparator());
-        popBuilder.append("AM=M-1" + System.lineSeparator());
-        popBuilder.append("D=M" + System.lineSeparator());
-        popBuilder.append("@R13" + System.lineSeparator());
-        popBuilder.append("A=M" + System.lineSeparator());
-        popBuilder.append("M=D");
+        if (!segment.equals(POINTER)) {
+            popBuilder.append("D=D+A" + System.lineSeparator());
+            popBuilder.append("@R13" + System.lineSeparator());
+            popBuilder.append("M=D" + System.lineSeparator());
+            popBuilder.append("@SP" + System.lineSeparator());
+            popBuilder.append("AM=M-1" + System.lineSeparator());
+            popBuilder.append("D=M" + System.lineSeparator());
+            popBuilder.append("@R13" + System.lineSeparator());
+            popBuilder.append("A=M" + System.lineSeparator());
+            popBuilder.append("M=D");
+        }
         return popBuilder.toString();
     };
 
     public Function<List<String>, String> functionToAsm = (List<String> args) -> {
-        String functionName = args.get(1);
+        currentFunctionName = args.get(1);
         Integer argCount = Integer.parseInt(args.get(2));
+        String filename = args.get(3);
         StringBuilder functionBuilder = new StringBuilder();
-        functionBuilder.append(this.labelAsm.apply(functionName));
+        functionBuilder.append(this.labelAsm.apply(filename + "." + currentFunctionName) + System.lineSeparator());
         for (int i = 0; i < argCount; i++) {
             functionBuilder.append("@SP" + System.lineSeparator());
             functionBuilder.append("A=M" + System.lineSeparator());
             functionBuilder.append("M=0" + System.lineSeparator());
             functionBuilder.append("@SP" + System.lineSeparator());
             functionBuilder.append("M=M+1");
+            // don't add line separator to the last one
+            if (i < argCount - 1) {
+                functionBuilder.append(System.lineSeparator());
+            }
         }
         return functionBuilder.toString();
     };
@@ -223,8 +245,8 @@ public class AsmCoder {
         returnBuilder.append("D=M" + System.lineSeparator());
         returnBuilder.append("@FRAME" + System.lineSeparator());
         returnBuilder.append("M=D" + System.lineSeparator());
-        returnBuilder.append("@5");
-        returnBuilder.append("A=D-A");
+        returnBuilder.append("@5" + System.lineSeparator());
+        returnBuilder.append("A=D-A" + System.lineSeparator());
         returnBuilder.append("@RET" + System.lineSeparator());
         returnBuilder.append("M=D" + System.lineSeparator());
         // pop()
@@ -246,7 +268,9 @@ public class AsmCoder {
         commonReturn(returnBuilder, "3", "ARG");
         // LCL = *(FRAME - 4)
         commonReturn(returnBuilder, "4", "LCL");
-        returnBuilder.append(this.goToAsm.apply("RET"));
+        returnBuilder.append("@RET" + System.lineSeparator());
+        returnBuilder.append("A=M" + System.lineSeparator());
+        returnBuilder.append("0;JMP");
         return returnBuilder.toString();
     }
 
@@ -260,15 +284,15 @@ public class AsmCoder {
         return returnBuilder;
     }
 
-    public Function<String, String> labelAsm = (String label) -> "(" + label + ")";
+    public Function<String, String> labelAsm = (String label) -> "(" + currentFunctionName + "$" + label + ")";
 
     public Function<String, String> goToAsm = (String destination) ->
-            "@" + destination + System.lineSeparator() +
+            "@" + currentFunctionName + "$" + destination + System.lineSeparator() +
             "0;JMP";
 
     public Function<String, String> ifGoToAsm = (String destination) ->
             MOVE_SP_UP +
-            "@" + destination + System.lineSeparator() +
+            "@" + currentFunctionName + "$" + destination + System.lineSeparator() +
             "D;JNE";
 
     /*
@@ -325,12 +349,24 @@ public class AsmCoder {
                 segmentAsm = generatePushPopStart(type, "THAT", position);
                 break;
             case POINTER:
+
+                // TODO: should clean this up, confusing as is
                 if (position == 0) {
-                    segmentAsm = "@THIS" + System.lineSeparator() +
-                                 "D=M" + System.lineSeparator();
+                    if (type.equals("pop")) {
+                        segmentAsm = MOVE_SP_UP + "@THIS" + System.lineSeparator() +
+                                "M=D";
+                    } else {
+                        segmentAsm = "@THIS" + System.lineSeparator() +
+                                "D=M" + System.lineSeparator();
+                    }
                 } else {
-                    segmentAsm = "@THAT" + System.lineSeparator() +
-                                 "D=M" + System.lineSeparator();
+                    if (type.equals("pop")) {
+                        segmentAsm = MOVE_SP_UP + "@THAT" + System.lineSeparator() +
+                                "M=D";
+                    } else {
+                        segmentAsm = "@THAT" + System.lineSeparator() +
+                                "D=M" + System.lineSeparator();
+                    }
                 }
                 break;
         }

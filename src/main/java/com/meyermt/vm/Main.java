@@ -20,8 +20,12 @@ public class Main {
         VMFileReader reader = new VMFileReader(args[0]);
         List<String> cleanFileLines = reader.readAndClean();
 
-        // stream over the file, parse and translate
+        // first we will bootstrap the program
         AsmCoder coder = new AsmCoder();
+        List<String> bootstrappedCode = coder.writeBootStrap();
+
+        // stream over the file, parse and translate
+
         Parser parser = new Parser(coder, reader.getInputPath().getFileName().toString());
         List<String> assemblerOutput = cleanFileLines.stream()
                 .map(line -> parser.parseAndTranslate(line))

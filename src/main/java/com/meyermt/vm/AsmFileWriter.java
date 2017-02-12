@@ -16,8 +16,8 @@ import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 public class AsmFileWriter {
 
     private final Path outputPath;
-    private final static String VM_EXT = "vm";
-    private final static String ASM_EXT = "asm";
+    private final static String VM_EXT = ".vm";
+    private final static String ASM_EXT = ".asm";
 
     /**
      * Instantiates a new Asm file writer using output path.
@@ -35,15 +35,28 @@ public class AsmFileWriter {
      */
     public void writeAsmFile(List<String> asmCode) {
         String fileName = outputPath.getFileName().toString();
-        String outputFileName = fileName.replace(VM_EXT, ASM_EXT);
-        try {
-            String outputDir = outputPath.toRealPath(NOFOLLOW_LINKS).getParent().toString();
-            Path outputPath = Paths.get(outputDir, outputFileName);
-            Files.write(outputPath, asmCode, Charset.defaultCharset());
-        } catch (IOException e) {
-            System.out.println("Issue encountered writing output file for: " + outputFileName);
-            e.printStackTrace();
-            System.exit(1);
+        if (outputPath.toString().endsWith(VM_EXT)) {
+            String outputFileName = fileName.replace(VM_EXT, ASM_EXT);
+            try {
+                String outputDir = outputPath.toRealPath(NOFOLLOW_LINKS).getParent().toString();
+                Path outputPath = Paths.get(outputDir, outputFileName);
+                Files.write(outputPath, asmCode, Charset.defaultCharset());
+            } catch (IOException e) {
+                System.out.println("Issue encountered writing output file for: " + outputFileName);
+                e.printStackTrace();
+                System.exit(1);
+            }
+        } else {
+            String outputFileName = fileName.concat(ASM_EXT);
+            try {
+                String outputDir = outputPath.toRealPath(NOFOLLOW_LINKS).toString();
+                Path outputPath = Paths.get(outputDir, outputFileName);
+                Files.write(outputPath, asmCode, Charset.defaultCharset());
+            } catch (IOException e) {
+                System.out.println("Issue encountered writing output file for: " + outputFileName);
+                e.printStackTrace();
+                System.exit(1);
+            }
         }
     }
 }
