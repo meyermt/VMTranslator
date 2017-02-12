@@ -13,7 +13,7 @@ public class AsmCoder {
     private static final String MOVE_SP_UP =
             "@SP" + System.lineSeparator() +
             "AM=M-1" + System.lineSeparator() +
-            "D=M" + System.lineSeparator()
+            "D=M" + System.lineSeparator();
     private static final String ADD_SUB_GT_LT_EQ_SHARED_START =
             MOVE_SP_UP +
             "A=A-1" + System.lineSeparator();
@@ -42,6 +42,8 @@ public class AsmCoder {
     // the segments
     private final static String ARGUMENT = "argument", LOCAL = "local", STATIC = "static", CONSTANT = "constant",
             THIS = "this", THAT = "that", POINTER = "pointer", TEMP = "temp";
+
+    private int returnAddrCounter = 0;
 
     /**
      * Instantiates a new Asm coder.
@@ -128,13 +130,17 @@ public class AsmCoder {
         String fileName = args.get(3);
         StringBuilder pushBuilder = new StringBuilder();
         pushBuilder.append(getSegmentTranslation(pushType, segment, position, fileName));
-        pushBuilder.append("@SP" + System.lineSeparator());
-        pushBuilder.append("A=M" + System.lineSeparator());
-        pushBuilder.append("M=D" + System.lineSeparator());
-        pushBuilder.append("@SP" + System.lineSeparator());
-        pushBuilder.append("M=M+1");
+        pushBuilder.append(pushValueInD());
         return pushBuilder.toString();
     };
+
+    private String pushValueInD() {
+        return "@SP" + System.lineSeparator() +
+               "A=M" + System.lineSeparator() +
+               "M=D" + System.lineSeparator() +
+               "@SP" + System.lineSeparator() +
+               "M=M+1";
+    }
 
     /**
      * Function that reads in pop type, segment, position, and filename in an array and outputs pop assembly code.
@@ -160,16 +166,55 @@ public class AsmCoder {
 
     public Function<List<String>, String> functionToAsm = (List<String> args) -> {
         String functionName = args.get(1);
-        String argCount = args.get(2);
-
-    }
+        Integer argCount = Integer.parseInt(args.get(2));
+        StringBuilder functionBuilder = new StringBuilder();
+        functionBuilder.append(this.labelAsm.apply(functionName));
+        for (int i = 0; i < argCount; i++) {
+            functionBuilder.append("@SP" + System.lineSeparator());
+            functionBuilder.append("A=M" + System.lineSeparator());
+            functionBuilder.append("M=0" + System.lineSeparator());
+            functionBuilder.append("@SP" + System.lineSeparator());
+            functionBuilder.append("M=M+1");
+        }
+        return functionBuilder.toString();
+    };
 
     public Function<List<String>, String> callToAsm = (List<String> args) -> {
+        returnAddrCounter++;
         String functionName = args.get(1);
-        String argCount = args.get(2);
+        Integer argCount = Integer.parseInt(args.get(2));
+        int argPosToMoveBack = argCount + 5;
         StringBuilder callBuilder = new StringBuilder();
-        // first save current stuff
-        callBuilder.append("@")
+        // first push current stuff
+        callBuilder.append("@returnAddr" + returnAddrCounter);
+        callBuilder.append("D=A" + System.lineSeparator());
+        callBuilder.append(pushValueInD() + System.lineSeparator());
+        callBuilder.append("@LCL" + System.lineSeparator());
+        callBuilder.append("D=M" + System.lineSeparator());
+        callBuilder.append(pushValueInD() + System.lineSeparator());
+        callBuilder.append("@ARG" + System.lineSeparator());
+        callBuilder.append("D=M" + System.lineSeparator());
+        callBuilder.append(pushValueInD() + System.lineSeparator());
+        callBuilder.append("@THIS" + System.lineSeparator());
+        callBuilder.append("D=M" + System.lineSeparator());
+        callBuilder.append(pushValueInD() + System.lineSeparator());
+        callBuilder.append("@THAT" + System.lineSeparator());
+        callBuilder.append("D=M" + System.lineSeparator());
+        callBuilder.append(pushValueInD() + System.lineSeparator());
+
+        callBuilder.append("@SP" + System.lineSeparator());
+        callBuilder.append("D=M" + System.lineSeparator());
+        callBuilder.append("@" + argPosToMoveBack + System.lineSeparator());
+        callBuilder.append("D=D-A" + System.lineSeparator());
+        callBuilder.append("@ARG" + System.lineSeparator());
+        callBuilder.append("M=D" + System.lineSeparator());
+        callBuilder.append("@SP" + System.lineSeparator());
+        callBuilder.append("D=M" + System.lineSeparator());
+        callBuilder.append("@LCL" + System.lineSeparator());
+        callBuilder.append("M=D" + System.lineSeparator());
+        callBuilder.append(this.goToAsm.apply(functionName));
+        callBuilder.append(this.labelAsm.apply("returnAddr" + returnAddrCounter));
+        return callBuilder.toString();
     };
 
     public String getReturnAsm() {
@@ -180,7 +225,6 @@ public class AsmCoder {
         returnBuilder.append("M=D" + System.lineSeparator());
         returnBuilder.append("@5");
         returnBuilder.append("A=D-A");
-        // TODO: May need to revisit this next code.
         returnBuilder.append("@RET" + System.lineSeparator());
         returnBuilder.append("M=D" + System.lineSeparator());
         // pop()
@@ -197,27 +241,23 @@ public class AsmCoder {
         returnBuilder.append("@THAT" + System.lineSeparator());
         returnBuilder.append("M=D" + System.lineSeparator());
         // THIS = *(FRAME - 2)
-        returnBuilder.append("@FRAME" + System.lineSeparator());
-        returnBuilder.append("D=M" + System.lineSeparator());
-        returnBuilder.append("@2" + System.lineSeparator());
-        returnBuilder.append("A=D-A" + System.lineSeparator());
-        returnBuilder.append("@THIS" + System.lineSeparator());
-        returnBuilder.append("M=D" + System.lineSeparator());
+        commonReturn(returnBuilder, "2", "THIS");
         // ARG = *(FRAME - 3)
-        returnBuilder.append("@FRAME" + System.lineSeparator());
-        returnBuilder.append("D=M" + System.lineSeparator());
-        returnBuilder.append("@3" + System.lineSeparator());
-        returnBuilder.append("A=D-A" + System.lineSeparator());
-        returnBuilder.append("@ARG" + System.lineSeparator());
-        returnBuilder.append("M=D" + System.lineSeparator());
+        commonReturn(returnBuilder, "3", "ARG");
         // LCL = *(FRAME - 4)
+        commonReturn(returnBuilder, "4", "LCL");
+        returnBuilder.append(this.goToAsm.apply("RET"));
+        return returnBuilder.toString();
+    }
+
+    private StringBuilder commonReturn(StringBuilder returnBuilder, String positionsBack, String memLocation) {
         returnBuilder.append("@FRAME" + System.lineSeparator());
         returnBuilder.append("D=M" + System.lineSeparator());
-        returnBuilder.append("@4" + System.lineSeparator());
+        returnBuilder.append("@" + positionsBack + System.lineSeparator());
         returnBuilder.append("A=D-A" + System.lineSeparator());
-        returnBuilder.append("@LCL" + System.lineSeparator());
+        returnBuilder.append("@" + memLocation + System.lineSeparator());
         returnBuilder.append("M=D" + System.lineSeparator());
-        returnBuilder.append(this.goToAsm.apply("RET"));
+        return returnBuilder;
     }
 
     public Function<String, String> labelAsm = (String label) -> "(" + label + ")";
