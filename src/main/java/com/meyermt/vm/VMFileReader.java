@@ -1,9 +1,11 @@
 package com.meyermt.vm;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,26 +42,48 @@ public class VMFileReader {
      * @return the list
      */
     public List<String> readAndClean() {
-        return removeComments(readFile(inputPath));
+        return removeComments(readFileOrFiles(inputPath));
     }
 
     /*
         Reads the file. Will exit the program if IOException encountered or file is not of .vm extension
     */
-    private List<String> readFile(Path inputPath) {
-        // if the filename doesn't have the .asm extension we will exit with helpful message
+    private List<String> readFileOrFiles(Path inputPath) {
+        // if the filename doesn't have the .vm extension we will check if it is a directory and if it has VM files
         if (!inputPath.toString().endsWith(VM_EXT)) {
-            System.out.println("Only able to read files with .vm extension. Please rename file and try again.");
-            System.exit(1);
-        }
-        try {
-            return Files.readAllLines(inputPath);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Unable to read file: " + inputPath);
-            System.exit(1);
+            File input = inputPath.toFile();
+            if (input.isDirectory()) {
+                List<File> vmFiles = Arrays.asList(input.listFiles()).stream()
+                        .filter(file -> file.isFile())
+                        .filter(file -> file.getAbsolutePath().endsWith(VM_EXT))
+                        .collect(Collectors.toList());
+                if (vmFiles.isEmpty()) {
+                    System.out.println("Directory specified has no .vm files. Please re-run with a new directory");
+                    System.exit(1);
+                } else {
+                    return vmFiles.stream()
+                            .flatMap(file -> tryReadingLines(file.toPath()).stream())
+                            .collect(Collectors.toList());
+                }
+            } else {
+                System.out.println("Only able to read files with .vm extension or a directory containing .vm files. Please rename and try again.");
+                System.exit(1);
+            }
+        } else {
+            return tryReadingLines(inputPath);
         }
         // can't actually hit this but needed to compile
+        return null;
+    }
+
+    private List<String> tryReadingLines(Path filePath) {
+        try {
+            return Files.readAllLines(filePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Unable to read file from: " + filePath);
+            System.exit(1);
+        }
         return null;
     }
 

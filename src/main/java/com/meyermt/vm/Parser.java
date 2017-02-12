@@ -19,9 +19,16 @@ public class Parser {
     // the push and pop commands
     private final static String POP = "pop", PUSH = "push";
 
+    // the function and call commands
+    private final static String FUNCTION = "function", CALL = "call";
+
+    // label, goto, if-goto
+    private final static String LABEL = "label", GOTO = "goto", IF_GOTO = "if-goto";
+
     private Map<String, String> statArithmeticToAsm = new HashMap<>();
+    private Map<String, Function<String, String>> statControlToAsm = new HashMap<>();
     private Map<String, Function<Integer, String>> dynArithmeticToAsm = new HashMap<>();
-    private Map<String, Function<List<String>, String>> pushPopToAsm = new HashMap<>();
+    private Map<String, Function<List<String>, String>> argumentCommandToAsm = new HashMap<>();
     private int commandCounter = 0;
 
     /**
@@ -35,7 +42,8 @@ public class Parser {
         this.fileName = fileName.replace(".vm","");
         loadStatArithmeticMap(coder);
         loadDynArithmeticMap(coder);
-        loadPushPopToAsm(coder);
+        loadArgumentCommandToAsm(coder);
+        loadStatControlMap(coder);
     }
 
     /**
@@ -56,9 +64,11 @@ public class Parser {
             // dynamic arithmetic requires us to increment certain labels
             commandCounter++;
             return dynArithmeticToAsm.get(command).apply(commandCounter);
+        } else if (statControlToAsm.containsKey(command)) {
+            return statControlToAsm.get(command).apply(args.get(1));
         } else {
             // the static push and pop needs the file name
-            return pushPopToAsm.get(command).apply(args);
+            return argumentCommandToAsm.get(command).apply(args);
         }
     }
 
@@ -77,9 +87,17 @@ public class Parser {
         dynArithmeticToAsm.put(EQ, coder.equalToAsm);
     }
 
-    private void loadPushPopToAsm(AsmCoder coder) {
-        pushPopToAsm.put(PUSH, coder.pushToAsm);
-        pushPopToAsm.put(POP, coder.popToAsm);
+    private void loadArgumentCommandToAsm(AsmCoder coder) {
+        argumentCommandToAsm.put(PUSH, coder.pushToAsm);
+        argumentCommandToAsm.put(POP, coder.popToAsm);
+        argumentCommandToAsm.put(FUNCTION, coder.functionToAsm);
+        argumentCommandToAsm.put(CALL, coder.callToAsm);
+    }
+
+    private void loadStatControlMap(AsmCoder coder) {
+        statControlToAsm.put(LABEL, coder.labelAsm);
+        statControlToAsm.put(GOTO, coder.goToAsm);
+        statControlToAsm.put(IF_GOTO, coder.ifGoToAsm);
     }
 
 

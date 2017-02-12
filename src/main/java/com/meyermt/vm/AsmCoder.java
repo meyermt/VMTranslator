@@ -10,10 +10,12 @@ import java.util.function.Function;
 public class AsmCoder {
 
     // shared asm translation
-    private static final String ADD_SUB_GT_LT_EQ_SHARED_START =
+    private static final String MOVE_SP_UP =
             "@SP" + System.lineSeparator() +
             "AM=M-1" + System.lineSeparator() +
-            "D=M" + System.lineSeparator() +
+            "D=M" + System.lineSeparator()
+    private static final String ADD_SUB_GT_LT_EQ_SHARED_START =
+            MOVE_SP_UP +
             "A=A-1" + System.lineSeparator();
     private static final String ADD_END =
             "M=M+D";
@@ -40,10 +42,6 @@ public class AsmCoder {
     // the segments
     private final static String ARGUMENT = "argument", LOCAL = "local", STATIC = "static", CONSTANT = "constant",
             THIS = "this", THAT = "that", POINTER = "pointer", TEMP = "temp";
-    private final static String ARGUMENT_ASM = "@ARG" + System.lineSeparator();
-    private final static String LOCAL_ASM = "@LCL" + System.lineSeparator();
-    private final static String POINTER0_ASM = "@THIS" + System.lineSeparator();
-    private final static String POINTER1_ASM = "@THAT" + System.lineSeparator();
 
     /**
      * Instantiates a new Asm coder.
@@ -159,6 +157,50 @@ public class AsmCoder {
         popBuilder.append("M=D");
         return popBuilder.toString();
     };
+
+    public Function<List<String>, String> functionToAsm = (List<String> args) -> {
+        String functionName = args.get(1);
+        String argCount = args.get(2);
+
+    }
+
+    public Function<List<String>, String> callToAsm = (List<String> args) -> {
+        String functionName = args.get(1);
+        String argCount = args.get(2);
+        StringBuilder callBuilder = new StringBuilder();
+        // first save current stuff
+        callBuilder.append("@")
+    };
+
+    public String getReturnAsm() {
+        StringBuilder returnBuilder = new StringBuilder();
+        returnBuilder.append("@LCL" + System.lineSeparator());
+        returnBuilder.append("D=M" + System.lineSeparator());
+        returnBuilder.append("@FRAME" + System.lineSeparator());
+        returnBuilder.append("M=D" + System.lineSeparator());
+        returnBuilder.append("@5");
+        returnBuilder.append("A=D-A");
+        // TODO: May need to revisit this next code.
+        returnBuilder.append("@RET" + System.lineSeparator());
+        returnBuilder.append("M=D");
+        // repeat some things...
+
+
+        returnBuilder.append("@RET" + System.lineSeparator());
+        returnBuilder.append("A=M" + System.lineSeparator());
+        returnBuilder.append(this.goToAsm.apply("RET"));
+    }
+
+    public Function<String, String> labelAsm = (String label) -> "(" + label + ")";
+
+    public Function<String, String> goToAsm = (String destination) ->
+            "@" + destination + System.lineSeparator() +
+            "0;JMP";
+
+    public Function<String, String> ifGoToAsm = (String destination) ->
+            MOVE_SP_UP +
+            "@" + destination + System.lineSeparator() +
+            "D;JNE";
 
     /*
         Standard assembly code that is shared in LT, EQ, and GT commands
