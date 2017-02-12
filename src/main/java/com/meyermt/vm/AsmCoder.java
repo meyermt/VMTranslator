@@ -182,12 +182,41 @@ public class AsmCoder {
         returnBuilder.append("A=D-A");
         // TODO: May need to revisit this next code.
         returnBuilder.append("@RET" + System.lineSeparator());
-        returnBuilder.append("M=D");
-        // repeat some things...
-
-
-        returnBuilder.append("@RET" + System.lineSeparator());
+        returnBuilder.append("M=D" + System.lineSeparator());
+        // pop()
+        returnBuilder.append("@ARG" + System.lineSeparator());
         returnBuilder.append("A=M" + System.lineSeparator());
+        returnBuilder.append("M=D" + System.lineSeparator());
+        // SP = ARG + 1
+        returnBuilder.append("@SP" + System.lineSeparator());
+        returnBuilder.append("M=D+1" + System.lineSeparator());
+        // THAT = *(FRAME - 1)
+        returnBuilder.append("@FRAME" + System.lineSeparator());
+        returnBuilder.append("A=M-1" + System.lineSeparator());
+        returnBuilder.append("D=M" + System.lineSeparator());
+        returnBuilder.append("@THAT" + System.lineSeparator());
+        returnBuilder.append("M=D" + System.lineSeparator());
+        // THIS = *(FRAME - 2)
+        returnBuilder.append("@FRAME" + System.lineSeparator());
+        returnBuilder.append("D=M" + System.lineSeparator());
+        returnBuilder.append("@2" + System.lineSeparator());
+        returnBuilder.append("A=D-A" + System.lineSeparator());
+        returnBuilder.append("@THIS" + System.lineSeparator());
+        returnBuilder.append("M=D" + System.lineSeparator());
+        // ARG = *(FRAME - 3)
+        returnBuilder.append("@FRAME" + System.lineSeparator());
+        returnBuilder.append("D=M" + System.lineSeparator());
+        returnBuilder.append("@3" + System.lineSeparator());
+        returnBuilder.append("A=D-A" + System.lineSeparator());
+        returnBuilder.append("@ARG" + System.lineSeparator());
+        returnBuilder.append("M=D" + System.lineSeparator());
+        // LCL = *(FRAME - 4)
+        returnBuilder.append("@FRAME" + System.lineSeparator());
+        returnBuilder.append("D=M" + System.lineSeparator());
+        returnBuilder.append("@4" + System.lineSeparator());
+        returnBuilder.append("A=D-A" + System.lineSeparator());
+        returnBuilder.append("@LCL" + System.lineSeparator());
+        returnBuilder.append("M=D" + System.lineSeparator());
         returnBuilder.append(this.goToAsm.apply("RET"));
     }
 
