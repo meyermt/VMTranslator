@@ -54,7 +54,7 @@ public class AsmCoder {
         instructions.add("D=A");
         instructions.add("@SP");
         instructions.add("M=D");
-        String[] callArgs = {"call", "Sys.init", "0"};
+        String[] callArgs = {"call", "Sys.init", "0", ""};
         List<String> call = Arrays.asList(callArgs);
         instructions.add(callToAsm.apply(call));
         return instructions;
@@ -186,17 +186,14 @@ public class AsmCoder {
         Integer argCount = Integer.parseInt(args.get(2));
         String filename = args.get(3);
         StringBuilder functionBuilder = new StringBuilder();
-        functionBuilder.append(this.labelAsm.apply(filename + "." + currentFunctionName) + System.lineSeparator());
+        functionBuilder.append("(" + filename + "." + currentFunctionName + ")");
         for (int i = 0; i < argCount; i++) {
+            functionBuilder.append(System.lineSeparator());
             functionBuilder.append("@SP" + System.lineSeparator());
             functionBuilder.append("A=M" + System.lineSeparator());
             functionBuilder.append("M=0" + System.lineSeparator());
             functionBuilder.append("@SP" + System.lineSeparator());
             functionBuilder.append("M=M+1");
-            // don't add line separator to the last one
-            if (i < argCount - 1) {
-                functionBuilder.append(System.lineSeparator());
-            }
         }
         return functionBuilder.toString();
     };
@@ -205,10 +202,11 @@ public class AsmCoder {
         returnAddrCounter++;
         String functionName = args.get(1);
         Integer argCount = Integer.parseInt(args.get(2));
+        String filename = args.get(3);
         int argPosToMoveBack = argCount + 5;
         StringBuilder callBuilder = new StringBuilder();
         // first push current stuff
-        callBuilder.append("@returnAddr" + returnAddrCounter);
+        callBuilder.append("@returnAddr" + returnAddrCounter + System.lineSeparator());
         callBuilder.append("D=A" + System.lineSeparator());
         callBuilder.append(pushValueInD() + System.lineSeparator());
         callBuilder.append("@LCL" + System.lineSeparator());
@@ -234,8 +232,9 @@ public class AsmCoder {
         callBuilder.append("D=M" + System.lineSeparator());
         callBuilder.append("@LCL" + System.lineSeparator());
         callBuilder.append("M=D" + System.lineSeparator());
-        callBuilder.append(this.goToAsm.apply(functionName));
-        callBuilder.append(this.labelAsm.apply("returnAddr" + returnAddrCounter));
+        callBuilder.append("@" + filename + "." + functionName + System.lineSeparator());
+        callBuilder.append("0;JMP" + System.lineSeparator());
+        callBuilder.append("(returnAddr" + returnAddrCounter + ")");
         return callBuilder.toString();
     };
 
@@ -270,7 +269,7 @@ public class AsmCoder {
         commonReturnForFrame(returnBuilder, "4");
         commonReturnMemory(returnBuilder, "LCL");
 
-        // goto return
+        //
         returnBuilder.append("@RET" + System.lineSeparator());
         returnBuilder.append("A=M" + System.lineSeparator());
         returnBuilder.append("0;JMP");

@@ -31,9 +31,11 @@ public class Main {
                 .map(line -> parser.parseAndTranslate(line))
                 .collect(Collectors.toList());
 
+        bootstrappedCode.addAll(assemblerOutput);
         // write the output
         AsmFileWriter writer = new AsmFileWriter(reader.getInputPath());
-        writer.writeAsmFile(assemblerOutput);
+        writer.writeAsmFile(bootstrappedCode);
+        //writer.writeAsmFile(assemblerOutput);
     }
 
 }

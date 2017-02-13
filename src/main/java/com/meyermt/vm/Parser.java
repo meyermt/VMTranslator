@@ -67,7 +67,6 @@ public class Parser {
         } else if (statControlToAsm.containsKey(command)) {
             return statControlToAsm.get(command).apply(args.get(1));
         } else {
-            // the static push and pop needs the file name
             return argumentCommandToAsm.get(command).apply(args);
         }
     }
