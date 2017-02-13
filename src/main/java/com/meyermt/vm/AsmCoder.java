@@ -246,39 +246,47 @@ public class AsmCoder {
         returnBuilder.append("@FRAME" + System.lineSeparator());
         returnBuilder.append("M=D" + System.lineSeparator());
         returnBuilder.append("@5" + System.lineSeparator());
-        returnBuilder.append("A=D-A" + System.lineSeparator());
+        returnBuilder.append("D=D-A" + System.lineSeparator());
         returnBuilder.append("@RET" + System.lineSeparator());
         returnBuilder.append("M=D" + System.lineSeparator());
         // pop()
-        returnBuilder.append("@ARG" + System.lineSeparator());
-        returnBuilder.append("A=M" + System.lineSeparator());
-        returnBuilder.append("M=D" + System.lineSeparator());
-        // SP = ARG + 1
+        String[] popArg = {"pop", "argument", "0", ""};
+        returnBuilder.append(popToAsm.apply(Arrays.asList(popArg)) + System.lineSeparator());
+        // SP = ARG + 1. Assumes we still have the address for ARG
+        returnBuilder.append("D=A" + System.lineSeparator());
         returnBuilder.append("@SP" + System.lineSeparator());
         returnBuilder.append("M=D+1" + System.lineSeparator());
         // THAT = *(FRAME - 1)
         returnBuilder.append("@FRAME" + System.lineSeparator());
         returnBuilder.append("A=M-1" + System.lineSeparator());
-        returnBuilder.append("D=M" + System.lineSeparator());
-        returnBuilder.append("@THAT" + System.lineSeparator());
-        returnBuilder.append("M=D" + System.lineSeparator());
+        commonReturnMemory(returnBuilder, "THAT");
         // THIS = *(FRAME - 2)
-        commonReturn(returnBuilder, "2", "THIS");
+        commonReturnForFrame(returnBuilder, "2");
+        commonReturnMemory(returnBuilder, "THIS");
         // ARG = *(FRAME - 3)
-        commonReturn(returnBuilder, "3", "ARG");
+        commonReturnForFrame(returnBuilder, "3");
+        commonReturnMemory(returnBuilder, "ARG");
         // LCL = *(FRAME - 4)
-        commonReturn(returnBuilder, "4", "LCL");
+        commonReturnForFrame(returnBuilder, "4");
+        commonReturnMemory(returnBuilder, "LCL");
+
+        // goto return
         returnBuilder.append("@RET" + System.lineSeparator());
         returnBuilder.append("A=M" + System.lineSeparator());
         returnBuilder.append("0;JMP");
         return returnBuilder.toString();
     }
 
-    private StringBuilder commonReturn(StringBuilder returnBuilder, String positionsBack, String memLocation) {
+    private StringBuilder commonReturnForFrame(StringBuilder returnBuilder, String frameNum) {
+        returnBuilder.append("@" + frameNum + System.lineSeparator());
+        returnBuilder.append("D=A" + System.lineSeparator());
         returnBuilder.append("@FRAME" + System.lineSeparator());
+        returnBuilder.append("A=M-D" + System.lineSeparator());
+        return returnBuilder;
+    }
+
+    private StringBuilder commonReturnMemory(StringBuilder returnBuilder, String memLocation) {
         returnBuilder.append("D=M" + System.lineSeparator());
-        returnBuilder.append("@" + positionsBack + System.lineSeparator());
-        returnBuilder.append("A=D-A" + System.lineSeparator());
         returnBuilder.append("@" + memLocation + System.lineSeparator());
         returnBuilder.append("M=D" + System.lineSeparator());
         return returnBuilder;
@@ -376,6 +384,7 @@ public class AsmCoder {
     /*
         Generated code that is similar between segments, differs on push and pop
      */
+    // TODO: Right now @0's are wasting two lines per time. Should fix this
     private String generatePushPopStart(String type, String asmSeg, int position) {
         if (type.equals("push")) {
             return "@" + asmSeg + System.lineSeparator() +
