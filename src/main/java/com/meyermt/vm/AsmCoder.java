@@ -168,7 +168,9 @@ public class AsmCoder {
         StringBuilder popBuilder = new StringBuilder();
         popBuilder.append(getSegmentTranslation(popType, segment, position, fileName));
         if (!segment.equals(POINTER)) {
-            popBuilder.append("D=D+A" + System.lineSeparator());
+            if (!segment.equals(TEMP)) {
+                popBuilder.append("D=D+A" + System.lineSeparator());
+            }
             popBuilder.append("@R13" + System.lineSeparator());
             popBuilder.append("M=D" + System.lineSeparator());
             popBuilder.append("@SP" + System.lineSeparator());
@@ -186,7 +188,12 @@ public class AsmCoder {
         Integer argCount = Integer.parseInt(args.get(2));
         String filename = args.get(3);
         StringBuilder functionBuilder = new StringBuilder();
-        functionBuilder.append("(" + filename + "." + currentFunctionName + ")");
+        if (!currentFunctionName.equals("Sys.init")) {
+            currentFunctionName = filename + "." + currentFunctionName;
+            functionBuilder.append("(" + currentFunctionName + ")");
+        } else {
+            functionBuilder.append("(Sys.init)");
+        }
         for (int i = 0; i < argCount; i++) {
             functionBuilder.append(System.lineSeparator());
             functionBuilder.append("@SP" + System.lineSeparator());
@@ -232,7 +239,11 @@ public class AsmCoder {
         callBuilder.append("D=M" + System.lineSeparator());
         callBuilder.append("@LCL" + System.lineSeparator());
         callBuilder.append("M=D" + System.lineSeparator());
-        callBuilder.append("@" + filename + "." + functionName + System.lineSeparator());
+        if (!functionName.equals("Sys.init")) {
+            callBuilder.append("@" + filename + "." + functionName + System.lineSeparator());
+        } else {
+            callBuilder.append("@Sys.init" + System.lineSeparator());
+        }
         callBuilder.append("0;JMP" + System.lineSeparator());
         callBuilder.append("(returnAddr" + returnAddrCounter + ")");
         return callBuilder.toString();
@@ -244,8 +255,8 @@ public class AsmCoder {
         returnBuilder.append("D=M" + System.lineSeparator());
         returnBuilder.append("@FRAME" + System.lineSeparator());
         returnBuilder.append("M=D" + System.lineSeparator());
-        returnBuilder.append("@5" + System.lineSeparator());
-        returnBuilder.append("D=D-A" + System.lineSeparator());
+        commonReturnForFrame(returnBuilder, "5");
+        commonReturnMemory(returnBuilder, "RET");
         returnBuilder.append("@RET" + System.lineSeparator());
         returnBuilder.append("M=D" + System.lineSeparator());
         // pop()
@@ -347,7 +358,7 @@ public class AsmCoder {
             case TEMP:
                 int tempPosition = 5 + position;
                 segmentAsm = "@" + tempPosition + System.lineSeparator() +
-                             "D=M" + System.lineSeparator();
+                             "D=A" + System.lineSeparator();
                 break;
             case THIS:
                 segmentAsm = generatePushPopStart(type, "THIS", position);
