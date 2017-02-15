@@ -12,34 +12,24 @@ import java.util.function.Function;
 public class AsmCoder {
 
     // shared asm translation
-    private static final String MOVE_SP_UP =
+    private static final String MOVE_SP_UP_AND_STORE =
             "@SP" + System.lineSeparator() +
             "AM=M-1" + System.lineSeparator() +
             "D=M" + System.lineSeparator();
-    private static final String ADD_SUB_GT_LT_EQ_SHARED_START =
-            MOVE_SP_UP +
-            "A=A-1" + System.lineSeparator();
-    private static final String ADD_END =
-            "M=M+D";
-    private static final String SUB_END =
-            "M=M-D";
-    private static final String NEG_ASM =
-            "@SP" + System.lineSeparator() +
-            "A=M-1" + System.lineSeparator() +
-            "M=-M";
-    private static final String NOT_ASM =
-            "@SP" + System.lineSeparator() +
-            "A=M-1" + System.lineSeparator() +
-            "M=!M";
-    private static final String AND_END =
-            "M=M&D";
-    private static final String OR_END =
-            "M=M|D";
+    private static final String MOVE_ADDR_UP = "A=A-1" + System.lineSeparator();
+    private static final String GET_TWO_ON_STACK = MOVE_SP_UP_AND_STORE + MOVE_ADDR_UP;
+    private static final String ADD_END = "M=M+D", SUB_END = "M=M-D";
+    private static final String AND_END = "M=M&D", OR_END = "M=M|D";
+    private static final String ADD_ASM = GET_TWO_ON_STACK + ADD_END;
+    private static final String SUB_ASM = GET_TWO_ON_STACK + SUB_END;
+    private static final String AND_ASM = GET_TWO_ON_STACK + AND_END;
+    private static final String OR_ASM = GET_TWO_ON_STACK + OR_END;
 
-    private static final String ADD_ASM = ADD_SUB_GT_LT_EQ_SHARED_START + ADD_END;
-    private static final String SUB_ASM = ADD_SUB_GT_LT_EQ_SHARED_START + SUB_END;
-    private static final String AND_ASM = ADD_SUB_GT_LT_EQ_SHARED_START + AND_END;
-    private static final String OR_ASM = ADD_SUB_GT_LT_EQ_SHARED_START + OR_END;
+    private static final String MOVE_ONE_UP_STACK =
+            "@SP" + System.lineSeparator() +
+            "A=M-1" + System.lineSeparator();
+    private static final String NEG_ASM = MOVE_ONE_UP_STACK + "M=-M";
+    private static final String NOT_ASM = MOVE_ONE_UP_STACK + "M=!M";
 
     // the segments
     private final static String ARGUMENT = "argument", LOCAL = "local", STATIC = "static", CONSTANT = "constant",
@@ -302,15 +292,26 @@ public class AsmCoder {
         return returnBuilder;
     }
 
-    public Function<String, String> labelAsm = (String label) -> "(" + currentFunctionName + "$" + label + ")";
+    // TODO: Confirm function name unneeded in naming
+//    public Function<String, String> labelAsm = (String label) -> "(" + currentFunctionName + "$" + label + ")";
+//
+//    public Function<String, String> goToAsm = (String destination) ->
+//            "@" + currentFunctionName + "$" + destination + System.lineSeparator() +
+//            "0;JMP";
+//
+//    public Function<String, String> ifGoToAsm = (String destination) ->
+//            MOVE_SP_UP +
+//            "@" + currentFunctionName + "$" + destination + System.lineSeparator() +
+//            "D;JNE";
+    public Function<String, String> labelAsm = (String label) -> "(" + label + ")";
 
     public Function<String, String> goToAsm = (String destination) ->
-            "@" + currentFunctionName + "$" + destination + System.lineSeparator() +
+            "@" + destination + System.lineSeparator() +
             "0;JMP";
 
     public Function<String, String> ifGoToAsm = (String destination) ->
-            MOVE_SP_UP +
-            "@" + currentFunctionName + "$" + destination + System.lineSeparator() +
+            MOVE_SP_UP_AND_STORE +
+            "@" + destination + System.lineSeparator() +
             "D;JNE";
 
     /*
@@ -318,7 +319,7 @@ public class AsmCoder {
      */
     private String getLTEQGT(String jump, Integer counter) {
         StringBuilder builder = new StringBuilder();
-        builder.append(ADD_SUB_GT_LT_EQ_SHARED_START);
+        builder.append(GET_TWO_ON_STACK);
         builder.append("D=M-D" + System.lineSeparator());
         builder.append("@TRUE" + counter + System.lineSeparator());
         builder.append("D;J" + jump + System.lineSeparator());
@@ -371,7 +372,7 @@ public class AsmCoder {
                 // TODO: should clean this up, confusing as is
                 if (position == 0) {
                     if (type.equals("pop")) {
-                        segmentAsm = MOVE_SP_UP + "@THIS" + System.lineSeparator() +
+                        segmentAsm = MOVE_SP_UP_AND_STORE + "@THIS" + System.lineSeparator() +
                                 "M=D";
                     } else {
                         segmentAsm = "@THIS" + System.lineSeparator() +
@@ -379,7 +380,7 @@ public class AsmCoder {
                     }
                 } else {
                     if (type.equals("pop")) {
-                        segmentAsm = MOVE_SP_UP + "@THAT" + System.lineSeparator() +
+                        segmentAsm = MOVE_SP_UP_AND_STORE + "@THAT" + System.lineSeparator() +
                                 "M=D";
                     } else {
                         segmentAsm = "@THAT" + System.lineSeparator() +
