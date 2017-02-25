@@ -11,7 +11,7 @@ import java.util.function.Function;
 public class Parser {
 
     private final AsmCoder coder;
-    private final String fileName;
+    private String fileName;
 
     // the arithmetic and return vm commands
     public final static String ADD = "add", SUB = "sub", NEG = "neg", EQ = "eq", GT = "gt", LT = "lt", AND = "and",
@@ -35,11 +35,9 @@ public class Parser {
      * Instantiates a new Parser. Must have a filename in order to be able to pass to AsmCoder to name static variables.
      *
      * @param coder    the coder
-     * @param fileName the file name
      */
-    public Parser(AsmCoder coder, String fileName) {
+    public Parser(AsmCoder coder) {
         this.coder = coder;
-        this.fileName = fileName.replace(".vm","");
         loadStatArithmeticMap(coder);
         loadDynArithmeticMap(coder);
         loadArgumentCommandToAsm(coder);
@@ -54,7 +52,7 @@ public class Parser {
      * @param vmLine the vm line
      * @return the string
      */
-    public String parseAndTranslate(String vmLine) {
+    public String parseAndTranslate(String fileName, String vmLine) {
         List<String> args = new ArrayList<>(Arrays.asList(vmLine.split(" ")));
         args.add(fileName);
         String command = args.get(0);
@@ -99,6 +97,4 @@ public class Parser {
         statControlToAsm.put(GOTO, coder.goToAsm);
         statControlToAsm.put(IF_GOTO, coder.ifGoToAsm);
     }
-
-
 }

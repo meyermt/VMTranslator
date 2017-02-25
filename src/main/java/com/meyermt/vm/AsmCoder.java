@@ -12,12 +12,12 @@ import java.util.function.Function;
 public class AsmCoder {
 
     // shared asm translation
-    private static final String MOVE_SP_UP_AND_STORE =
+    private static final String MOVE_SP_UP_STORE_IN_D =
             "@SP" + System.lineSeparator() +
             "AM=M-1" + System.lineSeparator() +
             "D=M" + System.lineSeparator();
-    private static final String MOVE_ADDR_UP = "A=A-1" + System.lineSeparator();
-    private static final String GET_TWO_ON_STACK = MOVE_SP_UP_AND_STORE + MOVE_ADDR_UP;
+    private static final String MOVE_SP_UP = "A=A-1" + System.lineSeparator();
+    private static final String GET_TWO_ON_STACK = MOVE_SP_UP_STORE_IN_D + MOVE_SP_UP;
     private static final String ADD_END = "M=M+D", SUB_END = "M=M-D";
     private static final String AND_END = "M=M&D", OR_END = "M=M|D";
     private static final String ADD_ASM = GET_TWO_ON_STACK + ADD_END;
@@ -31,12 +31,18 @@ public class AsmCoder {
     private static final String NEG_ASM = MOVE_ONE_UP_STACK + "M=-M";
     private static final String NOT_ASM = MOVE_ONE_UP_STACK + "M=!M";
 
+    private static final String PUSH_VALUE_IN_D =
+        "@SP" + System.lineSeparator() +
+        "A=M" + System.lineSeparator() +
+        "M=D" + System.lineSeparator() +
+        "@SP" + System.lineSeparator() +
+        "M=M+1";
+
     // the segments
     private final static String ARGUMENT = "argument", LOCAL = "local", STATIC = "static", CONSTANT = "constant",
             THIS = "this", THAT = "that", POINTER = "pointer", TEMP = "temp";
 
     private int returnAddrCounter = 0;
-    private String currentFunctionName = "";
 
     public List<String> writeBootStrap() {
         List<String> instructions = new ArrayList<>();
@@ -135,17 +141,9 @@ public class AsmCoder {
         String fileName = args.get(3);
         StringBuilder pushBuilder = new StringBuilder();
         pushBuilder.append(getSegmentTranslation(pushType, segment, position, fileName));
-        pushBuilder.append(pushValueInD());
+        pushBuilder.append(PUSH_VALUE_IN_D);
         return pushBuilder.toString();
     };
-
-    private String pushValueInD() {
-        return "@SP" + System.lineSeparator() +
-               "A=M" + System.lineSeparator() +
-               "M=D" + System.lineSeparator() +
-               "@SP" + System.lineSeparator() +
-               "M=M+1";
-    }
 
     /**
      * Function that reads in pop type, segment, position, and filename in an array and outputs pop assembly code.
@@ -158,7 +156,7 @@ public class AsmCoder {
         StringBuilder popBuilder = new StringBuilder();
         popBuilder.append(getSegmentTranslation(popType, segment, position, fileName));
         if (!segment.equals(POINTER)) {
-            if (!segment.equals(TEMP)) {
+            if (!segment.equals(TEMP) && !segment.equals(STATIC)) {
                 popBuilder.append("D=D+A" + System.lineSeparator());
             }
             popBuilder.append("@R13" + System.lineSeparator());
@@ -173,28 +171,25 @@ public class AsmCoder {
         return popBuilder.toString();
     };
 
+    /**
+     * Function that reads in function vm instructions and outputs function assembly code
+     */
     public Function<List<String>, String> functionToAsm = (List<String> args) -> {
-        currentFunctionName = args.get(1);
+        String currentFunctionName = args.get(1);
         Integer argCount = Integer.parseInt(args.get(2));
-        String filename = args.get(3);
         StringBuilder functionBuilder = new StringBuilder();
-        if (!currentFunctionName.equals("Sys.init")) {
-            currentFunctionName = filename + "." + currentFunctionName;
             functionBuilder.append("(" + currentFunctionName + ")");
-        } else {
-            functionBuilder.append("(Sys.init)");
-        }
         for (int i = 0; i < argCount; i++) {
             functionBuilder.append(System.lineSeparator());
-            functionBuilder.append("@SP" + System.lineSeparator());
-            functionBuilder.append("A=M" + System.lineSeparator());
-            functionBuilder.append("M=0" + System.lineSeparator());
-            functionBuilder.append("@SP" + System.lineSeparator());
-            functionBuilder.append("M=M+1");
+            functionBuilder.append("D=0" + System.lineSeparator());
+            functionBuilder.append(PUSH_VALUE_IN_D);
         }
         return functionBuilder.toString();
     };
 
+    /**
+     * Function that reads in call vm instructions and outputs call assembly code
+     */
     public Function<List<String>, String> callToAsm = (List<String> args) -> {
         returnAddrCounter++;
         String functionName = args.get(1);
@@ -205,19 +200,19 @@ public class AsmCoder {
         // first push current stuff
         callBuilder.append("@returnAddr" + returnAddrCounter + System.lineSeparator());
         callBuilder.append("D=A" + System.lineSeparator());
-        callBuilder.append(pushValueInD() + System.lineSeparator());
+        callBuilder.append(PUSH_VALUE_IN_D + System.lineSeparator());
         callBuilder.append("@LCL" + System.lineSeparator());
         callBuilder.append("D=M" + System.lineSeparator());
-        callBuilder.append(pushValueInD() + System.lineSeparator());
+        callBuilder.append(PUSH_VALUE_IN_D + System.lineSeparator());
         callBuilder.append("@ARG" + System.lineSeparator());
         callBuilder.append("D=M" + System.lineSeparator());
-        callBuilder.append(pushValueInD() + System.lineSeparator());
+        callBuilder.append(PUSH_VALUE_IN_D + System.lineSeparator());
         callBuilder.append("@THIS" + System.lineSeparator());
         callBuilder.append("D=M" + System.lineSeparator());
-        callBuilder.append(pushValueInD() + System.lineSeparator());
+        callBuilder.append(PUSH_VALUE_IN_D + System.lineSeparator());
         callBuilder.append("@THAT" + System.lineSeparator());
         callBuilder.append("D=M" + System.lineSeparator());
-        callBuilder.append(pushValueInD() + System.lineSeparator());
+        callBuilder.append(PUSH_VALUE_IN_D + System.lineSeparator());
 
         callBuilder.append("@SP" + System.lineSeparator());
         callBuilder.append("D=M" + System.lineSeparator());
@@ -229,16 +224,15 @@ public class AsmCoder {
         callBuilder.append("D=M" + System.lineSeparator());
         callBuilder.append("@LCL" + System.lineSeparator());
         callBuilder.append("M=D" + System.lineSeparator());
-        if (!functionName.equals("Sys.init")) {
-            callBuilder.append("@" + filename + "." + functionName + System.lineSeparator());
-        } else {
-            callBuilder.append("@Sys.init" + System.lineSeparator());
-        }
+        callBuilder.append("@" + functionName + System.lineSeparator());
         callBuilder.append("0;JMP" + System.lineSeparator());
         callBuilder.append("(returnAddr" + returnAddrCounter + ")");
         return callBuilder.toString();
     };
 
+    /**
+     * Function that returns static "return" assembly code
+     */
     public String getReturnAsm() {
         StringBuilder returnBuilder = new StringBuilder();
         returnBuilder.append("@LCL" + System.lineSeparator());
@@ -277,6 +271,12 @@ public class AsmCoder {
         return returnBuilder.toString();
     }
 
+    /**
+     * Helper method to return common 4 lines for FRAME variable return processing to increment up the stack
+     * @param returnBuilder string builder for the return assembly code
+     * @param frameNum number of addresses for FRAME to move up stack
+     * @return string builder for the return assembly code
+     */
     private StringBuilder commonReturnForFrame(StringBuilder returnBuilder, String frameNum) {
         returnBuilder.append("@" + frameNum + System.lineSeparator());
         returnBuilder.append("D=A" + System.lineSeparator());
@@ -285,6 +285,13 @@ public class AsmCoder {
         return returnBuilder;
     }
 
+    /**
+     * Helper method to return common 3 lines for getting an value stored in memory, going to a given location in memory,
+     * and storing the value at that location.
+     * @param returnBuilder string builder for return assembly code
+     * @param memLocation location in memory
+     * @return string builder for the return assembly code
+     */
     private StringBuilder commonReturnMemory(StringBuilder returnBuilder, String memLocation) {
         returnBuilder.append("D=M" + System.lineSeparator());
         returnBuilder.append("@" + memLocation + System.lineSeparator());
@@ -292,25 +299,23 @@ public class AsmCoder {
         return returnBuilder;
     }
 
-    // TODO: Confirm function name unneeded in naming
-//    public Function<String, String> labelAsm = (String label) -> "(" + currentFunctionName + "$" + label + ")";
-//
-//    public Function<String, String> goToAsm = (String destination) ->
-//            "@" + currentFunctionName + "$" + destination + System.lineSeparator() +
-//            "0;JMP";
-//
-//    public Function<String, String> ifGoToAsm = (String destination) ->
-//            MOVE_SP_UP +
-//            "@" + currentFunctionName + "$" + destination + System.lineSeparator() +
-//            "D;JNE";
+    /**
+     * Function that reads in a label name and return label assembly code
+     */
     public Function<String, String> labelAsm = (String label) -> "(" + label + ")";
 
+    /**
+     * Function that reads in destination for goto and return goto assembly code
+     */
     public Function<String, String> goToAsm = (String destination) ->
             "@" + destination + System.lineSeparator() +
             "0;JMP";
 
+    /**
+     * Function that reads in if-goto destination and returns if-goto assembly code
+     */
     public Function<String, String> ifGoToAsm = (String destination) ->
-            MOVE_SP_UP_AND_STORE +
+            MOVE_SP_UP_STORE_IN_D +
             "@" + destination + System.lineSeparator() +
             "D;JNE";
 
@@ -354,7 +359,13 @@ public class AsmCoder {
                 segmentAsm = generatePushPopStart(type, "ARG", position);
                 break;
             case STATIC:
-                segmentAsm = generatePushPopStart(type, fileName + "." + position, position);
+                if (type.equals("pop")) {
+                    segmentAsm = "@" + fileName + "." + position + System.lineSeparator() +
+                            "D=A" + System.lineSeparator();
+                } else {
+                    segmentAsm = "@" + fileName + "." + position + System.lineSeparator() +
+                            "D=M" + System.lineSeparator();
+                }
                 break;
             case TEMP:
                 int tempPosition = 5 + position;
@@ -372,7 +383,7 @@ public class AsmCoder {
                 // TODO: should clean this up, confusing as is
                 if (position == 0) {
                     if (type.equals("pop")) {
-                        segmentAsm = MOVE_SP_UP_AND_STORE + "@THIS" + System.lineSeparator() +
+                        segmentAsm = MOVE_SP_UP_STORE_IN_D + "@THIS" + System.lineSeparator() +
                                 "M=D";
                     } else {
                         segmentAsm = "@THIS" + System.lineSeparator() +
@@ -380,7 +391,7 @@ public class AsmCoder {
                     }
                 } else {
                     if (type.equals("pop")) {
-                        segmentAsm = MOVE_SP_UP_AND_STORE + "@THAT" + System.lineSeparator() +
+                        segmentAsm = MOVE_SP_UP_STORE_IN_D + "@THAT" + System.lineSeparator() +
                                 "M=D";
                     } else {
                         segmentAsm = "@THAT" + System.lineSeparator() +
@@ -395,7 +406,6 @@ public class AsmCoder {
     /*
         Generated code that is similar between segments, differs on push and pop
      */
-    // TODO: Right now @0's are wasting two lines per time. Should fix this
     private String generatePushPopStart(String type, String asmSeg, int position) {
         if (type.equals("push")) {
             return "@" + asmSeg + System.lineSeparator() +

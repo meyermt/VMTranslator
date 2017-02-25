@@ -5,8 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -36,19 +35,10 @@ public class VMFileReader {
         return this.inputPath;
     }
 
-    /**
-     * Read and clean list.
-     *
-     * @return the list
-     */
-    public List<String> readAndClean() {
-        return removeComments(readFileOrFiles(inputPath));
-    }
-
     /*
         Reads the file. Will exit the program if IOException encountered or file is not of .vm extension
     */
-    private List<String> readFileOrFiles(Path inputPath) {
+    public Map<String, List<String>> readFileOrFiles() {
         // if the filename doesn't have the .vm extension we will check if it is a directory and if it has VM files
         if (!inputPath.toString().endsWith(VM_EXT)) {
             File input = inputPath.toFile();
@@ -62,23 +52,28 @@ public class VMFileReader {
                     System.exit(1);
                 } else {
                     return vmFiles.stream()
-                            .flatMap(file -> tryReadingLines(file.toPath()).stream())
-                            .collect(Collectors.toList());
+                            .map(file -> tryReadingLines(file.toPath()))
+                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
                 }
             } else {
                 System.out.println("Only able to read files with .vm extension or a directory containing .vm files. Please rename and try again.");
                 System.exit(1);
             }
         } else {
-            return tryReadingLines(inputPath);
+            Map<String, List<String>> oneFileMap = new HashMap<>();
+            Map.Entry<String, List<String>> oneFile = tryReadingLines(inputPath);
+            oneFileMap.put(oneFile.getKey(), oneFile.getValue());
+            return oneFileMap;
         }
         // can't actually hit this but needed to compile
         return null;
     }
 
-    private List<String> tryReadingLines(Path filePath) {
+    private Map.Entry<String, List<String>> tryReadingLines(Path filePath) {
         try {
-            return Files.readAllLines(filePath);
+            List<String> fileLines = Files.readAllLines(filePath);
+            List<String> cleanFileLines = removeComments(fileLines);
+            return new AbstractMap.SimpleImmutableEntry<>(filePath.getFileName().toString(), cleanFileLines);
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("Unable to read file from: " + filePath);
