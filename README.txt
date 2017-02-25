@@ -10,6 +10,6 @@ Another requirement for running this project is that it be kept in the same fold
 
 1. Unzip the contents of the .zip file
 2. Enter `javac -d bin src/main/java/com/meyermt/vm/*.java` from the project root directory to compile the program
-3. Enter `java -cp bin com.meyermt.vm.Main <filename.vm>` from the project root directory to run the program. Please note that the file MUST have the ".vm" extension in order to be run through the program. You can use absolute or relative paths to specify the location of the input file.
+3. Enter `java -cp bin com.meyermt.vm.Main <filename.vm>` OR `java -cp bin com.meyermt.vm.Main <directory name>` (for projects with multiple VM files) from the project root directory to run the program. Please note that the file MUST have the ".vm" extension in order to be run through the program. You can use absolute or relative paths to specify the location of the input file.
 4. The program will produce a file with an ".asm" extension in the same directory as the input file.
 5. Load the output file into the CPUEmulator and enjoy.

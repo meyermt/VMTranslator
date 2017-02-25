@@ -361,16 +361,21 @@ public class AsmCoder {
             case STATIC:
                 if (type.equals("pop")) {
                     segmentAsm = "@" + fileName + "." + position + System.lineSeparator() +
-                            "D=A" + System.lineSeparator();
+                                 "D=A" + System.lineSeparator();
                 } else {
                     segmentAsm = "@" + fileName + "." + position + System.lineSeparator() +
-                            "D=M" + System.lineSeparator();
+                                 "D=M" + System.lineSeparator();
                 }
                 break;
             case TEMP:
                 int tempPosition = 5 + position;
-                segmentAsm = "@" + tempPosition + System.lineSeparator() +
-                             "D=A" + System.lineSeparator();
+                if (type.equals("pop")) {
+                    segmentAsm = "@" + tempPosition + System.lineSeparator() +
+                                 "D=A" + System.lineSeparator();
+                } else {
+                    segmentAsm = "@" + tempPosition + System.lineSeparator() +
+                                 "D=M" + System.lineSeparator();
+                }
                 break;
             case THIS:
                 segmentAsm = generatePushPopStart(type, "THIS", position);
